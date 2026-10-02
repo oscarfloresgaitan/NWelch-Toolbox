@@ -4,3 +4,6 @@ scipy>=1.10.0
 pandas>=2.0.0
 astropy>=5.0.0
 matplotlib>=3.7.0
+resample>=1.6.0
+finufft>=2.2.0
+

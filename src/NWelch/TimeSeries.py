@@ -1,8 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from resample.bootstrap import resample as bootstrap
+
+try:
+    from resample.bootstrap import resample as bootstrap
+except ImportError:
+    # Pure numpy fallback if 'resample' is not installed
+    def bootstrap(data, size=1000):
+        data_arr = np.asarray(data)
+        n = len(data_arr)
+        for _ in range(size):
+            yield data_arr[np.random.randint(0, n, size=n)]
+
 from scipy.stats import trim_mean
-from finufft import nufft1d3
+
+try:
+    from finufft import nufft1d3
+except ImportError:
+    nufft1d3 = None
+
 from scipy.special import iv # modified Bessel function of the first kind
 
 import os

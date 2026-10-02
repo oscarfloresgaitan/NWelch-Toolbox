@@ -9,13 +9,33 @@ Usage:
 
 import sys
 import os
-import webbrowser
-import threading
-import time
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.join(APP_DIR, 'src')
+
+# Auto-detect nearby virtualenv if running under system python without requirements
+def _ensure_venv():
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        return  # Already inside a virtual environment
+    # Candidate virtualenv paths
+    candidates = [
+        os.path.join(APP_DIR, 'venv', 'bin', 'python3'),
+        os.path.join(APP_DIR, '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(APP_DIR), '.venv', 'bin', 'python3'),
+        os.path.join(os.path.dirname(APP_DIR), 'venv', 'bin', 'python3'),
+    ]
+    for py_bin in candidates:
+        if os.path.isfile(py_bin) and os.access(py_bin, os.X_OK):
+            # Check if this python has our packages
+            os.execv(py_bin, [py_bin] + sys.argv)
+
+_ensure_venv()
+
 sys.path.insert(0, SRC_DIR)
+
+import webbrowser
+import threading
+import time
 
 from server import run_server
 
