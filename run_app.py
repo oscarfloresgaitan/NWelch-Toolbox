@@ -14,7 +14,8 @@ import threading
 import time
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(APP_DIR)
+SRC_DIR = os.path.join(APP_DIR, 'src')
+sys.path.insert(0, SRC_DIR)
 
 from server import run_server
 

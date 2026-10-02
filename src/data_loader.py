@@ -17,7 +17,8 @@ import math
 import numpy as np
 import pandas as pd
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = os.path.abspath(os.path.join(SRC_DIR, '..'))
 PROJECT_DIR = os.path.dirname(APP_DIR)
 DATA_DIR = os.path.join(APP_DIR, 'data', 'solar')
 UPLOAD_DIR = os.path.join(APP_DIR, 'user_uploads')

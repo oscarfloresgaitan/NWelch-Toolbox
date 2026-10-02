@@ -19,9 +19,10 @@ import math
 import numpy as np
 
 # Ensure project paths
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = os.path.abspath(os.path.join(SRC_DIR, '..'))
 PROJECT_DIR = os.path.abspath(os.path.join(APP_DIR, '..'))
-sys.path.append(APP_DIR)
+sys.path.insert(0, SRC_DIR)
 sys.path.append(os.path.join(PROJECT_DIR, 'Dual_Coherence'))
 
 from data_loader import (get_available_datasets, load_dataset, load_all_indicators,
