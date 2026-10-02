@@ -3017,7 +3017,18 @@ function renderMatrixPlot() {
       linewidth: 1.2,
       mirror: true
     },
-    shapes: shapes
+    shapes: shapes,
+    showlegend: true,
+    legend: {
+      orientation: 'h',
+      x: 0,
+      y: 1.08,
+      xanchor: 'left',
+      yanchor: 'bottom',
+      bgcolor: 'rgba(0,0,0,0)',
+      font: { color: th.legendText, size: 9.5 },
+      itemgap: 12
+    }
   };
 
   const matrixTraces = [heatmapTrace];
@@ -3032,21 +3043,21 @@ function renderMatrixPlot() {
 
     if (isMc) {
       // Analytical benchmark reference contours (fine dotted lines)
-      const tr1An = createFalContourTrace(f, f, rawZ, fap1An, '#00E676', 1.2, 'dot', '1.0% FAL (Analytical Reference)');
+      const tr1An = createFalContourTrace(f, f, rawZ, fap1An, '#00E676', 1.2, 'dot', '1% Ref (Analytical)');
       if (tr1An) matrixTraces.push(tr1An);
-      const tr01An = createFalContourTrace(f, f, rawZ, fap01An, '#FF2D55', 1.2, 'dot', '0.1% FAL (Analytical Reference)');
+      const tr01An = createFalContourTrace(f, f, rawZ, fap01An, '#FF2D55', 1.2, 'dot', '0.1% Ref (Analytical)');
       if (tr01An) matrixTraces.push(tr01An);
 
       // Primary Red-Noise MC FAL contours
-      const tr1 = createFalContourTrace(f, f, rawZ, fap1, '#00E676', 1.6, 'dash', '1.0% FAL (Red-Noise MC)');
+      const tr1 = createFalContourTrace(f, f, rawZ, fap1, '#00E676', 1.6, 'dash', '1% FAL (MC)');
       if (tr1) matrixTraces.push(tr1);
-      const tr01 = createFalContourTrace(f, f, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL (Red-Noise MC)');
+      const tr01 = createFalContourTrace(f, f, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL (MC)');
       if (tr01) matrixTraces.push(tr01);
     } else {
       // Primary Analytical FAL contours
-      const tr1 = createFalContourTrace(f, f, rawZ, fap1, '#00E676', 1.6, 'dash', '1.0% FAL (Analytical)');
+      const tr1 = createFalContourTrace(f, f, rawZ, fap1, '#00E676', 1.6, 'dash', '1% FAL');
       if (tr1) matrixTraces.push(tr1);
-      const tr01 = createFalContourTrace(f, f, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL (Analytical)');
+      const tr01 = createFalContourTrace(f, f, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL');
       if (tr01) matrixTraces.push(tr01);
     }
   }
@@ -5032,21 +5043,21 @@ function renderSingleCompMap(container, coh, label, highlightColor, targetF2, th
 
     if (isMc) {
       // Analytical benchmark reference contours (fine dotted lines)
-      const tr1An = createFalContourTrace(fGrid, fGrid, rawZ, fap1An, '#00E676', 1.2, 'dot', '1.0% FAL (Analytical Reference)');
+      const tr1An = createFalContourTrace(fGrid, fGrid, rawZ, fap1An, '#00E676', 1.2, 'dot', '1% Ref (Analytical)');
       if (tr1An) traces.push(tr1An);
-      const tr01An = createFalContourTrace(fGrid, fGrid, rawZ, fap01An, '#FF2D55', 1.2, 'dot', '0.1% FAL (Analytical Reference)');
+      const tr01An = createFalContourTrace(fGrid, fGrid, rawZ, fap01An, '#FF2D55', 1.2, 'dot', '0.1% Ref (Analytical)');
       if (tr01An) traces.push(tr01An);
 
       // Primary Red-Noise MC FAL contours
-      const tr1 = createFalContourTrace(fGrid, fGrid, rawZ, fap1, '#00E676', 1.6, 'dash', '1.0% FAL (Red-Noise MC)');
+      const tr1 = createFalContourTrace(fGrid, fGrid, rawZ, fap1, '#00E676', 1.6, 'dash', '1% FAL (MC)');
       if (tr1) traces.push(tr1);
-      const tr01 = createFalContourTrace(fGrid, fGrid, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL (Red-Noise MC)');
+      const tr01 = createFalContourTrace(fGrid, fGrid, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL (MC)');
       if (tr01) traces.push(tr01);
     } else {
       // Primary Analytical FAL contours
-      const tr1 = createFalContourTrace(fGrid, fGrid, rawZ, fap1, '#00E676', 1.6, 'dash', '1.0% FAL (Analytical)');
+      const tr1 = createFalContourTrace(fGrid, fGrid, rawZ, fap1, '#00E676', 1.6, 'dash', '1% FAL');
       if (tr1) traces.push(tr1);
-      const tr01 = createFalContourTrace(fGrid, fGrid, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL (Analytical)');
+      const tr01 = createFalContourTrace(fGrid, fGrid, rawZ, fap01, '#FF2D55', 1.8, 'dashdot', '0.1% FAL');
       if (tr01) traces.push(tr01);
     }
   }
@@ -5072,22 +5083,33 @@ function renderSingleCompMap(container, coh, label, highlightColor, targetF2, th
   const layout = {
     paper_bgcolor: th.paperBg,
     plot_bgcolor: '#000000',
-    margin: { l: 55, r: 25, t: 25, b: 45 },
+    margin: { l: 50, r: 15, t: 28, b: 42 },
     xaxis: {
-      title: { text: 'Frequency f₁ (d⁻¹)', font: { color: th.titleColor, size: 11 } },
-      tickfont: { color: th.tickColor, size: 10 },
+      title: { text: 'Frequency f₁ (d⁻¹)', font: { color: th.titleColor, size: 10.5 } },
+      tickfont: { color: th.tickColor, size: 9.5 },
       range: [fMin, fMax],
       gridcolor: '#262626'
     },
     yaxis: {
-      title: { text: 'Frequency f₂ (d⁻¹)', font: { color: th.titleColor, size: 11 } },
-      tickfont: { color: th.tickColor, size: 10 },
+      title: { text: 'Frequency f₂ (d⁻¹)', font: { color: th.titleColor, size: 10.5 } },
+      tickfont: { color: th.tickColor, size: 9.5 },
       range: [fMin, fMax],
       scaleanchor: 'x',
       scaleratio: 1,
       gridcolor: '#262626'
     },
-    shapes: shapes
+    shapes: shapes,
+    showlegend: true,
+    legend: {
+      orientation: 'h',
+      x: 0,
+      y: 1.07,
+      xanchor: 'left',
+      yanchor: 'bottom',
+      bgcolor: 'rgba(0,0,0,0)',
+      font: { color: th.legendText, size: 9 },
+      itemgap: 8
+    }
   };
 
   Plotly.react(container, traces, layout, { responsive: true, displayModeBar: false });
@@ -5187,16 +5209,16 @@ function renderCompDeltaMap(container, comp, th, targetF2) {
   const layout = {
     paper_bgcolor: th.paperBg,
     plot_bgcolor: '#000000',
-    margin: { l: 55, r: 25, t: 25, b: 45 },
+    margin: { l: 50, r: 15, t: 28, b: 42 },
     xaxis: {
-      title: { text: 'Frequency f₁ (d⁻¹)', font: { color: th.titleColor, size: 11 } },
-      tickfont: { color: th.tickColor, size: 10 },
+      title: { text: 'Frequency f₁ (d⁻¹)', font: { color: th.titleColor, size: 10.5 } },
+      tickfont: { color: th.tickColor, size: 9.5 },
       range: [fMin, fMax],
       gridcolor: '#262626'
     },
     yaxis: {
-      title: { text: 'Frequency f₂ (d⁻¹)', font: { color: th.titleColor, size: 11 } },
-      tickfont: { color: th.tickColor, size: 10 },
+      title: { text: 'Frequency f₂ (d⁻¹)', font: { color: th.titleColor, size: 10.5 } },
+      tickfont: { color: th.tickColor, size: 9.5 },
       range: [fMin, fMax],
       scaleanchor: 'x',
       scaleratio: 1,
