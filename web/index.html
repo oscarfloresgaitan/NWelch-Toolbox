@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NWelch Toolbox</title>
+  <!-- Plotly.js CDN -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <link rel="stylesheet" href="/web/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- SIDEBAR CONTROLS -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-mark">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </div>
+        <div>
+          <h2>NWelch Toolbox</h2>
+          <span class="subtitle">Spectral, Bivariate & Dual-Frequency Analysis</span>
+        </div>
+      </div>
+
+      <!-- SHARED DATASET CONTROLS (GLOBAL ACROSS ALL 3 VIEWS) -->
+      <div class="sidebar-content">
+        <div class="control-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="group-title" style="margin-bottom: 0;">Dataset & Baseline (Shared)</label>
+            <button type="button" id="btnOpenUploadModal" class="btn-mini-upload" title="Upload custom CSV/TXT dataset">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Upload</span>
+            </button>
+          </div>
+          <div class="field">
+            <label for="datasetSelect">Dataset</label>
+            <select id="datasetSelect">
+              <option value="harpsn" selected>HARPS-N Solar Observations</option>
+              <option value="omni2">OMNI2 Solar Indices</option>
+              <option value="neid">NEID Solar Observations</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="presetSelect">Baseline Preset</label>
+            <select id="presetSelect"></select>
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- CONTEXTUAL SIDEBAR: VIEW 1 (TIME SERIES & DIAGNOSTICS)           -->
+        <!-- ================================================================ -->
+        <div id="sidebarTimeseries" class="sidebar-tab-pane">
+          <div class="control-group">
+            <label class="group-title">Active Indicators / Subpanels</label>
+            <span class="field-hint">Select channels to display in stacked observation subpanels:</span>
+            <div class="indicator-checkbox-group" id="tsIndicatorGroup"></div>
+          </div>
+
+          <div class="control-group">
+            <label class="group-title">Frequency Grid & Periodograms</label>
+            <div class="grid-2col freq-grid">
+              <div class="field">
+                <label for="tsFminInput">f_min (d⁻¹)</label>
+                <input type="number" id="tsFminInput" value="0.0" step="0.01" min="0">
+              </div>
+              <div class="field">
+                <label for="tsFmaxInput">f_max (d⁻¹)</label>
+                <input type="number" id="tsFmaxInput" value="0.15" step="0.01" max="0.5">
+              </div>
+            </div>
+            <div class="field">
+              <label>Periodogram Display Mode</label>
+              <div class="segmented-control" id="lsLayoutControl">
+                <button type="button" class="seg-btn active" data-ls-layout="overlay">Combined Overlay</button>
+                <button type="button" class="seg-btn" data-ls-layout="subpanels">Subpanels</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="group-title">Spectral Window W(f) Span</label>
+            <div class="field">
+              <div class="segmented-control" id="fwinControl">
+                <button type="button" class="seg-btn chip-fwin active" data-fwin="1.5">±1.5 d⁻¹ (Default)</button>
+                <button type="button" class="seg-btn chip-fwin" data-fwin="0.1">±0.1 d⁻¹</button>
+              </div>
+              <span class="field-hint">Symmetric frequency grid [-f_win, +f_win] with ± annual, semi-annual, lunar, diurnal aliases.</span>
+            </div>
+          </div>
+
+          <button type="button" id="btnExportDiagPNG" class="action-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Diagnostics PNG
+          </button>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- CONTEXTUAL SIDEBAR: VIEW 2 (1D WELCH PSD & BIVARIATE COHERENCE)   -->
+        <!-- ================================================================ -->
+        <div id="sidebarWelch1D" class="sidebar-tab-pane" style="display: none;">
+          <div class="control-group">
+            <label class="group-title">1. Time Series Pair (Cross-Coherence)</label>
+            <div class="field">
+              <label for="welchSeries1Select">Series 1 (Primary)</label>
+              <select id="welchSeries1Select"></select>
+            </div>
+            <div class="field">
+              <label for="welchSeries2Select">Series 2 (Indicator to Cross)</label>
+              <select id="welchSeries2Select"></select>
+            </div>
+            <span class="field-hint text-warning">1D Bivariate Coherence requires distinct series (s₁ ≠ s₂).</span>
+          </div>
+
+          <div class="control-group">
+            <label class="group-title">2. Segmentation Setup</label>
+            <div class="field">
+              <div class="slider-header">
+                <label for="welchKInput">Number of Segments (K)</label>
+                <div class="input-val-group">
+                  <input type="number" id="welchKInput" min="2" max="30" step="1" value="4" class="numeric-input-sm">
+                  <span class="mono-unit">segs</span>
+                </div>
+              </div>
+              <input type="range" id="welchKSlider" min="2" max="15" step="1" value="4">
+              <div class="quick-chips">
+                <button type="button" class="chip chip-k" data-k="2">K=2</button>
+                <button type="button" class="chip chip-k" data-k="3">K=3</button>
+                <button type="button" class="chip chip-k active" data-k="4">K=4</button>
+                <button type="button" class="chip chip-k" data-k="5">K=5</button>
+                <button type="button" class="chip chip-k" data-k="6">K=6</button>
+                <button type="button" class="chip chip-k" data-k="8">K=8</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Segmentation Strategy</label>
+              <div class="segmented-control">
+                <button type="button" class="seg-btn active" data-welch-mode="adaptive">Adaptive</button>
+                <button type="button" class="seg-btn" data-welch-mode="uniform">Uniform</button>
+              </div>
+              <span class="field-hint">100% data preservation enforced (zero points trimmed).</span>
+            </div>
+
+            <div class="field">
+              <label>Window Tapering</label>
+              <div class="segmented-control">
+                <button type="button" class="seg-btn active" data-welch-taper="None">None (Rectangular)</button>
+                <button type="button" class="seg-btn" data-welch-taper="KaiserBessel">Kaiser-Bessel</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="group-title">3. Power Spectrum Overlays</label>
+            <div class="field">
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkLSSeries1" checked>
+                <span class="cb-custom"></span>
+                <span>Lomb-Scargle (Series 1)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkWelchSeries1" checked>
+                <span class="cb-custom"></span>
+                <span>Welch PSD (Series 1)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkLSSeries2">
+                <span class="cb-custom"></span>
+                <span>Lomb-Scargle (Series 2)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="chkWelchSeries2">
+                <span class="cb-custom"></span>
+                <span>Welch PSD (Series 2)</span>
+              </label>
+            </div>
+          </div>
+
+          <button type="button" id="btnRecalcWelch1D" class="primary-btn">
+            <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span class="btn-text">Recalculate 1D Coherence</span>
+          </button>
+
+          <button type="button" id="btnExportWelch1DPNG" class="action-btn-primary" style="margin-top: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export 1D Coherence PNG
+          </button>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- CONTEXTUAL SIDEBAR: VIEW 3 (2D DUAL COHERENCE MATRIX)            -->
+        <!-- ================================================================ -->
+        <div id="sidebarDual2D" class="sidebar-tab-pane">
+          <!-- 1. MODE & SERIES -->
+          <div class="control-group">
+            <label class="group-title">1. Mode & Pair</label>
+            <div class="field">
+              <label>Mode</label>
+              <div class="segmented-control">
+                <button type="button" class="seg-btn active" data-mode="auto">Autocoherence</button>
+                <button type="button" class="seg-btn" data-mode="cross">Cross-Coherence</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="series1Select">Time Series 1</label>
+              <select id="series1Select"></select>
+            </div>
+            <div class="field" id="series2Container" style="display: none;">
+              <label for="series2Select">Time Series 2 (Cross)</label>
+              <select id="series2Select"></select>
+            </div>
+          </div>
+
+          <!-- 2. SEGMENTATION & WINDOWING -->
+          <div class="control-group">
+            <label class="group-title">2. Segmentation & Windowing</label>
+
+            <div class="field">
+              <label>Segment Source</label>
+              <div class="segmented-control" id="dualSegSourceControl">
+                <button type="button" class="seg-btn active" data-dual-seg="uniform">Uniform Window (L)</button>
+                <button type="button" class="seg-btn" data-dual-seg="tab2">Tab 2 Custom / Adaptive</button>
+              </div>
+            </div>
+
+            <!-- UNIFORM SLIDING WINDOW CONTROLS -->
+            <div id="dualUniformControls">
+              <div class="field">
+                <div class="slider-header">
+                  <label for="lengthInput">Points per Segment (L)</label>
+                  <div class="input-val-group">
+                    <input type="number" id="lengthInput" min="20" max="5000" step="10" value="200" class="numeric-input-sm">
+                    <span class="mono-unit">pts</span>
+                  </div>
+                </div>
+                <input type="range" id="lengthSlider" min="50" max="1500" step="10" value="200">
+                <div class="quick-chips">
+                  <button type="button" class="chip" data-l="100">L=100</button>
+                  <button type="button" class="chip active" data-l="200">L=200</button>
+                  <button type="button" class="chip" data-l="500">L=500</button>
+                  <button type="button" class="chip" data-l="1000">L=1000</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2 CUSTOM SEGMENTS BADGE -->
+            <div id="dualTab2Badge" class="dual-tab2-badge" style="display: none;">
+              <div class="dual-tab2-header">
+                <strong>Active Tab 2 Segments</strong>
+                <span id="dualTab2KBadge" class="badge-pill">K = —</span>
+              </div>
+              <p id="dualTab2Desc" class="dual-tab2-desc">Uses the exact campaign and adaptive segment boundaries defined in Tab 2 (100% data kept).</p>
+              <div class="dual-tab2-stats" id="dualTab2Stats">
+                <span>N_eff: <strong id="dualTab2Neff">—</strong></span>
+                <span>2ℛ: <strong id="dualTab22R">—</strong></span>
+              </div>
+              <button type="button" id="btnSyncFromTab2" class="mini-btn-link">View / Adjust Segments in Tab 2 &rarr;</button>
+            </div>
+
+            <div class="field">
+              <label>Window Tapering</label>
+              <div class="segmented-control">
+                <button type="button" class="seg-btn active" data-taper="KaiserBessel">Kaiser-Bessel</button>
+                <button type="button" class="seg-btn" data-taper="None">None (Rectangular)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. HARMONICS & CUSTOM OVERLAYS -->
+          <div class="control-group">
+            <label class="group-title">3. Harmonics & Custom Lines</label>
+            <div class="field">
+              <label for="harmonicsSelect">Rotation Harmonics Lines</label>
+              <select id="harmonicsSelect">
+                <option value="1">1 Harmonic (f_rot only)</option>
+                <option value="2" selected>2 Harmonics (f_rot, 2f_rot)</option>
+                <option value="3">3 Harmonics (f_rot, 2f_rot, 3f_rot)</option>
+                <option value="4">4 Harmonics (f_rot to 4f_rot)</option>
+                <option value="5">5 Harmonics (f_rot to 5f_rot)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="customPeriodsInput">Custom Periodicities (days)</label>
+              <div class="input-with-action">
+                <input type="text" id="customPeriodsInput" placeholder="e.g. 10.5, 42.0, 154" value="">
+                <button type="button" id="btnApplyCustomLines" class="mini-btn-accent" title="Apply lines to matrix">Apply</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. FAP BENCHMARK -->
+          <div class="control-group">
+            <label class="group-title">4. False Alarm Probability (FAP)</label>
+            <div class="field">
+              <label>FAP Model</label>
+              <div class="segmented-control">
+                <button type="button" class="seg-btn active" data-fap="analytical">Analytical</button>
+                <button type="button" class="seg-btn" data-fap="montecarlo">Red-Noise MC</button>
+              </div>
+            </div>
+            <div class="field" id="mcContainer" style="display: none;">
+              <div class="slider-header">
+                <label for="mcInput">Surrogate Realizations</label>
+                <div class="input-val-group">
+                  <input type="number" id="mcInput" min="50" max="2000" step="50" value="200" class="numeric-input-sm">
+                  <span class="mono-unit">runs</span>
+                </div>
+              </div>
+              <input type="range" id="mcSlider" min="50" max="1000" step="50" value="200">
+              <div class="quick-chips">
+                <button type="button" class="chip chip-mc active" data-mc="200">200 runs</button>
+                <button type="button" class="chip chip-mc" data-mc="500">500 runs</button>
+                <button type="button" class="chip chip-mc" data-mc="1000">1000 runs</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. FREQUENCY RANGE -->
+          <div class="control-group">
+            <label class="group-title">5. Frequency Grid</label>
+            <div class="grid-2col freq-grid">
+              <div class="field">
+                <label for="fminInput">f_min (d⁻¹)</label>
+                <input type="number" id="fminInput" value="0.0" step="0.01" min="0">
+              </div>
+              <div class="field">
+                <label for="fmaxInput">f_max (d⁻¹)</label>
+                <input type="number" id="fmaxInput" value="0.10" step="0.01" max="0.5">
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. HORIZONTAL CUTS & COUPLED FREQUENCIES -->
+          <div class="control-group">
+            <label class="group-title">6. Tracked Frequencies for Cuts</label>
+            <p class="section-hint" style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+              Tracked candidate frequencies and harmonics available for horizontal cross-frequency slicing.
+            </p>
+            <div class="input-with-action" style="margin-bottom: 8px; gap: 6px;">
+              <input type="number" id="inputCustomCutFreq" placeholder="e.g. 0.0366 or 27.28" step="any" class="numeric-input-sm" style="flex: 1.2;">
+              <select id="selectCustomCutUnit" class="select-sm" style="flex: 0.9;">
+                <option value="freq" selected>f (d⁻¹)</option>
+                <option value="period">P (days)</option>
+              </select>
+              <button type="button" id="btnAddHorizontalCut" class="mini-btn-accent" title="Add Horizontal Cut">+ Add</button>
+            </div>
+            <div id="horizontalCutsList" class="horizontal-cuts-list"></div>
+          </div>
+
+          <!-- COMPUTE BUTTON -->
+          <button type="button" id="btnCompute" class="primary-btn">
+            <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span class="btn-text">Compute Coherence Matrix</span>
+          </button>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- CONTEXTUAL SIDEBAR: VIEW 4 (MULTI-CAMPAIGN / INSTRUMENT COMPARISON)-->
+        <!-- ================================================================ -->
+        <div id="sidebarComparison" class="sidebar-tab-pane" style="display: none;">
+          <div class="control-group">
+            <label class="group-title">Comparison Presets</label>
+            <div class="field">
+              <select id="compPresetSelector">
+                <option value="solar_min_max_rv" selected>Solar Min vs Max [HARPS-N RV Autocoherence] (Adaptive K=4)</option>
+                <option value="solar_min_max_fwhm_auto">Solar Min vs Max [HARPS-N FWHM Autocoherence] (Adaptive K=4)</option>
+                <option value="omni_min_max_sunspots">60-Yr OMNI2: All Minima vs Maxima [Sunspots R Autocoherence] (Adaptive K=6)</option>
+                <option value="omni_min_max_f107">60-Yr OMNI2: All Minima vs Maxima [10.7cm Radio Flux F10_7 Autocoherence] (Adaptive K=6)</option>
+                <option value="omni_full_k5">Full 60-Year OMNI2 Epoch [Sunspots R Autocoherence] (Adaptive K=5 vs K=3)</option>
+                <option value="segmentation_compare_k4_vs_k2">Side-by-Side Segmentation Comparison [HARPS-N 10-Yr: Adaptive K=4 vs K=2]</option>
+                <option value="solar_min_max_cross">Solar Min vs Max Cross-Coherence [HARPS-N RV × FWHM] (Adaptive K=4)</option>
+                <option value="custom">Custom Comparison Setup</option>
+              </select>
+              <span class="field-hint">Preset astronomical campaigns or custom dual setup.</span>
+            </div>
+          </div>
+
+          <!-- Panel A Configuration -->
+          <div class="control-group comp-panel-card" style="border-left: 3px solid #00E676;">
+            <label class="group-title" style="color: #00E676;">Panel A (Reference)</label>
+            <div class="field">
+              <label for="compDatasetASelect">Dataset</label>
+              <select id="compDatasetASelect"></select>
+            </div>
+            <div class="field">
+              <label for="compPresetASelect">Epoch / Window</label>
+              <select id="compPresetASelect"></select>
+            </div>
+            <div class="field">
+              <label for="compSeries1ASelect">Series 1 (Primary)</label>
+              <select id="compSeries1ASelect"></select>
+            </div>
+            <div class="field">
+              <label for="compSeries2ASelect">Series 2 (Optional Cross)</label>
+              <select id="compSeries2ASelect"></select>
+            </div>
+            <div class="field">
+              <div class="slider-header">
+                <label for="compKAInput">Number of Segments (K)</label>
+                <div class="input-val-group">
+                  <input type="number" id="compKAInput" min="2" max="30" step="1" value="4" class="numeric-input-sm">
+                  <span class="mono-unit">segs</span>
+                </div>
+              </div>
+              <input type="range" id="compKASlider" min="2" max="15" step="1" value="4">
+              <div class="quick-chips" style="margin-top: 5px;">
+                <button type="button" class="chip chip-ka" data-ka="2">K=2</button>
+                <button type="button" class="chip chip-ka" data-ka="3">K=3</button>
+                <button type="button" class="chip chip-ka active" data-ka="4">K=4</button>
+                <button type="button" class="chip chip-ka" data-ka="5">K=5</button>
+                <button type="button" class="chip chip-ka" data-ka="6">K=6</button>
+                <button type="button" class="chip chip-ka" data-ka="8">K=8</button>
+              </div>
+            </div>
+            <div class="field" style="margin-top: 6px;">
+              <label>Strategy</label>
+              <div class="segmented-control" id="compSegStrategyA">
+                <button type="button" class="seg-btn active" data-comp-mode-a="adaptive">Adaptive</button>
+                <button type="button" class="seg-btn" data-comp-mode-a="uniform">Uniform</button>
+              </div>
+            </div>
+            <button type="button" id="btnAutocalcCompA" class="secondary-btn" style="margin-top: 6px; padding: 4px 8px; font-size: 11px; width: 100%;">
+              Autocalculate Segments (A)
+            </button>
+            <div class="comp-segment-badge" id="compBadgeA" style="margin-top: 8px;">
+              <span>N: <strong id="compANpts">—</strong></span>
+              <span>K: <strong id="compAK">—</strong></span>
+              <span>N_eff: <strong id="compANeff">—</strong></span>
+              <span>2ℛ: <strong id="compA2R">—</strong></span>
+            </div>
+          </div>
+
+          <!-- Panel B Configuration -->
+          <div class="control-group comp-panel-card" style="border-left: 3px solid #FF9100;">
+            <label class="group-title" style="color: #FF9100;">Panel B (Target)</label>
+            <div class="field">
+              <label for="compDatasetBSelect">Dataset</label>
+              <select id="compDatasetBSelect"></select>
+            </div>
+            <div class="field">
+              <label for="compPresetBSelect">Epoch / Window</label>
+              <select id="compPresetBSelect"></select>
+            </div>
+            <div class="field">
+              <label for="compSeries1BSelect">Series 1 (Primary)</label>
+              <select id="compSeries1BSelect"></select>
+            </div>
+            <div class="field">
+              <label for="compSeries2BSelect">Series 2 (Optional Cross)</label>
+              <select id="compSeries2BSelect"></select>
+            </div>
+            <div class="field">
+              <div class="slider-header">
+                <label for="compKBInput">Number of Segments (K)</label>
+                <div class="input-val-group">
+                  <input type="number" id="compKBInput" min="2" max="30" step="1" value="4" class="numeric-input-sm">
+                  <span class="mono-unit">segs</span>
+                </div>
+              </div>
+              <input type="range" id="compKBSlider" min="2" max="15" step="1" value="4">
+              <div class="quick-chips" style="margin-top: 5px;">
+                <button type="button" class="chip chip-kb" data-kb="2">K=2</button>
+                <button type="button" class="chip chip-kb" data-kb="3">K=3</button>
+                <button type="button" class="chip chip-kb active" data-kb="4">K=4</button>
+                <button type="button" class="chip chip-kb" data-kb="5">K=5</button>
+                <button type="button" class="chip chip-kb" data-kb="6">K=6</button>
+                <button type="button" class="chip chip-kb" data-kb="8">K=8</button>
+              </div>
+            </div>
+            <div class="field" style="margin-top: 6px;">
+              <label>Strategy</label>
+              <div class="segmented-control" id="compSegStrategyB">
+                <button type="button" class="seg-btn active" data-comp-mode-b="adaptive">Adaptive</button>
+                <button type="button" class="seg-btn" data-comp-mode-b="uniform">Uniform</button>
+              </div>
+            </div>
+            <button type="button" id="btnAutocalcCompB" class="secondary-btn" style="margin-top: 6px; padding: 4px 8px; font-size: 11px; width: 100%;">
+              Autocalculate Segments (B)
+            </button>
+            <div class="comp-segment-badge" id="compBadgeB" style="margin-top: 8px;">
+              <span>N: <strong id="compBNpts">—</strong></span>
+              <span>K: <strong id="compBK">—</strong></span>
+              <span>N_eff: <strong id="compBNeff">—</strong></span>
+              <span>2ℛ: <strong id="compB2R">—</strong></span>
+            </div>
+          </div>
+
+          <!-- Shared Comparison Settings -->
+          <div class="control-group">
+            <label class="group-title">Shared Grid & Cut Settings</label>
+            <div class="grid-2col freq-grid">
+              <div class="field">
+                <label for="compFminInput">f_min (d⁻¹)</label>
+                <input type="number" id="compFminInput" value="0.0" step="0.005" min="0">
+              </div>
+              <div class="field">
+                <label for="compFmaxInput">f_max (d⁻¹)</label>
+                <input type="number" id="compFmaxInput" value="0.10" step="0.005" max="0.5">
+              </div>
+            </div>
+            <div class="field">
+              <label>Window Tapering</label>
+              <div class="segmented-control" id="compTaperControl">
+                <button type="button" class="seg-btn active" data-comp-taper="None">None</button>
+                <button type="button" class="seg-btn" data-comp-taper="KaiserBessel">Kaiser-Bessel</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>FAP Model</label>
+              <div class="segmented-control" id="compFapControl">
+                <button type="button" class="seg-btn active" data-comp-fap="analytical">Analytical</button>
+                <button type="button" class="seg-btn" data-comp-fap="rednoise">Red-Noise MC</button>
+              </div>
+            </div>
+            <div class="field" id="compMcContainer" style="display: none;">
+              <div class="slider-header">
+                <label for="compMcInput">Surrogate Realizations</label>
+                <div class="input-val-group">
+                  <input type="number" id="compMcInput" min="20" max="1000" step="20" value="50" class="numeric-input-sm">
+                  <span class="mono-unit">runs</span>
+                </div>
+              </div>
+              <span class="field-hint">CAR(1) red-noise MC surrogate iterations</span>
+            </div>
+            <div class="field">
+              <label for="compTargetF2Input">Horizontal Cut f₂ (d⁻¹)</label>
+              <div class="input-val-group">
+                <input type="number" id="compTargetF2Input" value="0.03666" step="any" class="numeric-input-sm">
+                <span class="mono-unit">d⁻¹</span>
+              </div>
+              <div class="quick-preset-chips" style="display: flex; gap: 6px; margin-top: 6px;">
+                <button type="button" id="btnCompPresetRot" class="mini-btn active" style="flex: 1;" title="Set horizontal cut to fundamental rotation frequency (f_rot)">f_rot (27.3 d)</button>
+                <button type="button" id="btnCompPreset2Rot" class="mini-btn" style="flex: 1;" title="Set horizontal cut to first harmonic (2×f_rot)">2×f_rot (13.6 d)</button>
+              </div>
+              <span class="field-hint">Preset: Fundamental f_rot or 1st Harmonic 2×f_rot</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <button type="button" id="btnRunComparison" class="primary-btn">
+            <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span class="btn-text">Run Comparison Analysis</span>
+          </button>
+
+          <button type="button" id="btnExportCompPNG" class="action-btn-primary" style="margin-top: 10px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export 4-Panel Comparison PNG
+          </button>
+
+          <button type="button" id="btnExportCompCSV" class="secondary-btn" style="margin-top: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Export Slices CSV
+          </button>
+        </div>
+
+        <!-- PARAMETERS SAVE / LOAD -->
+        <div class="control-group parameters-card">
+          <label class="group-title">Parameter Profiles</label>
+          <div class="grid-2col">
+            <button type="button" id="btnSaveParams" class="secondary-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              Save JSON
+            </button>
+            <label for="loadParamsFile" class="secondary-btn file-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Load JSON
+              <input type="file" id="loadParamsFile" accept=".json" style="display: none;">
+            </label>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN DASHBOARD -->
+    <main class="main-dashboard">
+      <!-- TOP STATUS BAR & ACTIONS -->
+      <header class="top-bar">
+        <div class="view-tabs" id="viewTabs">
+          <button type="button" class="tab-btn active" data-view="landing" id="tabBtnLanding" title="Toolbox Home & Module Directory">Toolbox Home</button>
+          <button type="button" class="tab-btn" data-view="timeseries" title="1. Time Series Observations & Spectral Window">1. Time Series</button>
+          <button type="button" class="tab-btn" data-view="welch1d" title="2. 1D Welch PSD & Adaptive Segmentation">2. 1D Welch</button>
+          <button type="button" class="tab-btn" data-view="dual2d" title="3. 2D Dual Coherence Matrix">3. 2D Coherence</button>
+          <button type="button" class="tab-btn" data-view="comparison" id="tabBtnComparison" title="4. Multi-Campaign & Instrument Comparison">4. Comparison</button>
+        </div>
+
+        <div class="status-chips" id="statusChips">
+          <div class="chip-metric" title="Total Observations (N)">
+            <span class="chip-label">N</span>
+            <span class="chip-value" id="statN">—</span>
+          </div>
+          <div class="chip-metric" title="Segments (K)">
+            <span class="chip-label">K</span>
+            <span class="chip-value" id="statK">—</span>
+          </div>
+          <div class="chip-metric" title="Effective Segments (N_eff)">
+            <span class="chip-label">N<sub>eff</sub></span>
+            <span class="chip-value" id="statNeff">—</span>
+          </div>
+          <div class="chip-metric highlight-metric" title="Ramirez Delgado 2ℛ Bandwidth">
+            <span class="chip-label">2ℛ</span>
+            <span class="chip-value" id="stat2R">—</span>
+          </div>
+          <div class="chip-metric" title="Stellar Rotation Period">
+            <span class="chip-label">P<sub>rot</sub></span>
+            <span class="chip-value" id="statProt">—</span>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <div class="toolbar-item" id="paletteContainer">
+            <label for="colormapSelect">Palette</label>
+            <select id="colormapSelect">
+              <option value="inferno" selected>Inferno</option>
+              <option value="turbo">Turbo</option>
+              <option value="afmhot">Afmhot</option>
+              <option value="viridis">Viridis</option>
+              <option value="magma">Magma</option>
+              <option value="plasma">Plasma</option>
+            </select>
+          </div>
+          <div class="toolbar-item" id="contrastContainer">
+            <label for="contrastSelect">Contrast</label>
+            <select id="contrastSelect" title="Matrix Dynamic Range (vmax)">
+              <option value="high" selected>High (0.5–4.0)</option>
+              <option value="medium">Medium (0.5–6.0)</option>
+              <option value="full">Full (0.0–12.0)</option>
+            </select>
+          </div>
+          <div class="toolbar-item" id="maskDiagonalContainer">
+            <label class="toggle-control" style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; user-select: none;" title="Mask out the dominant diagonal autocoherence ridge to expose subtle cross-coupling peaks">
+              <input type="checkbox" id="chkMaskDiagonal">
+              <span>Mask Diagonal (2ℛ)</span>
+            </label>
+          </div>
+          <div class="toolbar-item" id="maskWidthContainer" style="display: none; align-items: center; gap: 4px;">
+            <label for="maskWidthSlider" style="font-size: 10px; color: var(--text-muted);">Width: <span id="maskWidthVal">1.0</span>×2ℛ</label>
+            <input type="range" id="maskWidthSlider" min="0.5" max="3.0" step="0.25" value="1.0" style="width: 70px;">
+          </div>
+          <button type="button" id="btnThemeToggle" class="action-btn theme-toggle-btn" title="Toggle Light / Dark Mode">
+            <svg id="themeIconSun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg id="themeIconMoon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span id="themeLabel">Light</span>
+          </button>
+          <button type="button" id="btnExportPNG" class="action-btn" title="Export High-Resolution Publication Plots">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Plots
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEWPORT PANELS (SCROLLABLE DASHBOARD) -->
+      <div class="panels-container">
+
+        <!-- ================================================================ -->
+        <!-- VIEW 0: TOOLBOX LANDING PAGE & FUNCTION DIRECTORY                -->
+        <!-- ================================================================ -->
+        <div id="viewLanding" class="view-content active">
+          <!-- Hero Section -->
+          <div class="landing-hero-card">
+            <div class="landing-hero-content">
+              <div class="landing-tag">ASTRONOMICAL TIME SERIES & SPECTRAL ANALYSIS</div>
+              <h1 class="landing-title">NWelch Toolbox</h1>
+              <p class="landing-subtitle">
+                Interactive workbench for inspecting time series, testing adaptive Welch segmentations, and computing 1D bivariate and 2D dual-frequency coherence matrices.
+              </p>
+            </div>
+            <div class="landing-hero-stats" id="landingHeroStats">
+              <div class="landing-stat-item">
+                <span class="l-lbl">Selected Dataset</span>
+                <span class="l-val" id="landingDatasetName">HARPS-N Solar Observations</span>
+              </div>
+              <div class="landing-stat-item">
+                <span class="l-lbl">Observations (N)</span>
+                <span class="l-val" id="landingN">—</span>
+              </div>
+              <div class="landing-stat-item">
+                <span class="l-lbl">Time Baseline (T)</span>
+                <span class="l-val" id="landingTspan">—</span>
+              </div>
+              <div class="landing-stat-item">
+                <span class="l-lbl">Median Cadence</span>
+                <span class="l-val" id="landingCadence">—</span>
+              </div>
+              <div class="landing-stat-item">
+                <span class="l-lbl">Stellar Rotation P_rot</span>
+                <span class="l-val" id="landingProt">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Function Modules Grid -->
+          <div class="landing-modules-grid">
+            <!-- Module 1 -->
+            <div class="module-card" data-launch="timeseries">
+              <div class="module-card-badge">Module 1</div>
+              <div class="module-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+              </div>
+              <h3 class="module-title">Time Series & Spectral Windows</h3>
+              <p class="module-desc">
+                Inspect raw spectroscopic observations across multiple indicators in stacked subpanels. Assess sampling cadence distributions and diagnose observational aliases (annual 1-yr, 6-month solar avoidance, 1-month lunar) using the NWelch spectral window function W(f).
+              </p>
+              <div class="module-tags">
+                <span>Stacked Subpanels</span>
+                <span>NWelch W(f)</span>
+                <span>Alias Diagnosis</span>
+                <span>Lomb-Scargle</span>
+              </div>
+              <button type="button" class="module-launch-btn">Launch Module 1 &rarr;</button>
+            </div>
+
+            <!-- Module 2 -->
+            <div class="module-card" data-launch="welch1d">
+              <div class="module-card-badge">Module 2</div>
+              <div class="module-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19h16M4 5h16M8 12h8"></path>
+                  <circle cx="8" cy="12" r="2"></circle>
+                  <circle cx="16" cy="12" r="2"></circle>
+                </svg>
+              </div>
+              <h3 class="module-title">Welch PSD & Adaptive Segmentation</h3>
+              <p class="module-desc">
+                Segment datasets into continuous campaigns under 100% data preservation and zero window tapering. Overlay the Welch power spectrum on top of Lomb-Scargle periodograms on logarithmic power scales, adjust segment boundaries, and compute 1D bivariate coherence.
+              </p>
+              <div class="module-tags">
+                <span>Zero Trimming</span>
+                <span>Campaign Clustering</span>
+                <span>Log Parseval PSD</span>
+                <span>Bivariate Coherence</span>
+              </div>
+              <button type="button" class="module-launch-btn">Launch Module 2 &rarr;</button>
+            </div>
+
+            <!-- Module 3 -->
+            <div class="module-card" data-launch="dual2d">
+              <div class="module-card-badge">Module 3</div>
+              <div class="module-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              </div>
+              <h3 class="module-title">Dual-Frequency Cross-Coherence & Slices</h3>
+              <p class="module-desc">
+                Quantify non-stationary stellar rotation and cross-frequency activity coupling in 2D. Explore Fisher z(f) coherence within Ramirez Delgado 2ℛ resolution cells, extract diagonal and arbitrary horizontal cuts, and run automated peak and alias identification.
+              </p>
+              <div class="module-tags">
+                <span>2ℛ Resolution Cells</span>
+                <span>Horizontal Cuts (f_rot, 2f_rot)</span>
+                <span>Peak Detector</span>
+                <span>Sampling Alias Beat Tags</span>
+              </div>
+              <button type="button" class="module-launch-btn">Launch Module 3 &rarr;</button>
+            </div>
+
+            <!-- Module 4 -->
+            <div class="module-card" data-launch="comparison">
+              <div class="module-card-badge">Module 4</div>
+              <div class="module-icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 20V10M12 20V4M6 20v-6"></path>
+                </svg>
+              </div>
+              <h3 class="module-title">Multi-Campaign & Instrument Comparison</h3>
+              <p class="module-desc">
+                Compare spectral and coherence signatures side by side across observing seasons (such as Solar Minimum vs. Solar Maximum) or contrast different spectrographs (HARPS-N, NEID, OMNI2) with synchronized dual maps, linked horizontal slices, and delta coherence matrices.
+              </p>
+              <div class="module-tags">
+                <span>Side-by-Side Dual Maps</span>
+                <span>Solar Min vs Max</span>
+                <span>Delta Matrix Δz</span>
+                <span>Differential Beat Period</span>
+              </div>
+              <button type="button" class="module-launch-btn">Launch Module 4 &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Authors & Contact Banner -->
+          <div class="landing-contacts-card">
+            <div class="contacts-title">Research & Development</div>
+            <div class="contacts-list">
+              <div class="contact-item">
+                <span class="contact-name">Oscar A. Flores Gaitán</span>
+                <span class="contact-links">
+                  <a href="mailto:ofg@udel.edu" class="contact-link">ofg@udel.edu</a> &bull;
+                  <a href="https://oscarfloresgaitan.github.io/" target="_blank" rel="noopener noreferrer" class="contact-link">Website</a>
+                </span>
+              </div>
+              <div class="contact-item">
+                <span class="contact-name">Sally Dodson-Robinson</span>
+                <span class="contact-links">
+                  <a href="mailto:sdr@udel.edu" class="contact-link">sdr@udel.edu</a> &bull;
+                  <a href="https://sdrastro.github.io/personal-webpage/" target="_blank" rel="noopener noreferrer" class="contact-link">Website</a>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 1: TIME SERIES & LOMB-SCARGLE DIAGNOSTICS                   -->
+        <!-- ================================================================ -->
+        <div id="viewTimeseries" class="view-content" style="display: none;">
+          <!-- TOP: Stacked Time Series Observations Subpanels -->
+          <div class="panel-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="indicator-dot"></span>
+                Time Series Observations (Stacked Subpanels, 100% Data Preserved)
+              </div>
+              <div class="card-actions">
+                <button type="button" id="btnResetZoomTS" class="mini-btn">Reset Zoom</button>
+              </div>
+            </div>
+            <div id="plotTimeSeries" class="plot-canvas plot-canvas-stacked"></div>
+          </div>
+
+          <!-- MIDDLE: Cadence & Spectral Window Function -->
+          <div class="panels-bottom-row">
+            <div class="panel-card panel-cut">
+              <div class="card-header">
+                <div class="card-title">Sampling Cadence Distribution log₁₀(Δt)</div>
+              </div>
+              <div id="plotCadenceHist" class="plot-canvas plot-canvas-sm"></div>
+              <div id="cadenceStatsContent" style="padding: 10px 14px; border-top: 1px solid var(--border-subtle);"></div>
+            </div>
+
+            <div class="panel-card panel-cut">
+              <div class="card-header">
+                <div class="card-title">Spectral Window Function W(f) [Symmetric Aliases]</div>
+              </div>
+              <div id="plotSpectralWindow" class="plot-canvas plot-canvas-sm"></div>
+            </div>
+          </div>
+
+          <!-- BOTTOM: Lomb-Scargle Periodograms -->
+          <div class="panel-card">
+            <div class="card-header">
+              <div class="card-title">Lomb-Scargle Periodograms [Analytical FAPs & Rotation Harmonics]</div>
+              <div class="card-actions">
+                <div class="domain-toggle">
+                  <button type="button" class="domain-btn active" data-lscut="domain" data-val="freq">Frequency (d⁻¹)</button>
+                  <button type="button" class="domain-btn" data-lscut="domain" data-val="period">Period (days)</button>
+                </div>
+                <div class="scale-toggle">
+                  <button type="button" class="scale-btn active" data-lscut="scale" data-val="log">Log Power</button>
+                  <button type="button" class="scale-btn" data-lscut="scale" data-val="linear">Linear Power</button>
+                </div>
+              </div>
+            </div>
+            <div id="plotLSSpectra" class="plot-canvas plot-canvas-md"></div>
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 2: 1D WELCH PSD & BIVARIATE COHERENCE                       -->
+        <!-- ================================================================ -->
+        <div id="viewWelch1D" class="view-content">
+          <!-- TOP: Time-Domain Segmentation Scheme -->
+          <div class="panel-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="indicator-dot"></span>
+                Time-Domain Segmentation Scheme (100% Data Preservation)
+              </div>
+              <div class="card-actions">
+                <button type="button" id="btnAutocalcSegments" class="mini-btn-accent" title="Detect campaigns and reset segments">
+                  Autocalculate Segments
+                </button>
+              </div>
+            </div>
+            <div id="plotSegmentTimeline" class="plot-canvas plot-canvas-md"></div>
+            <!-- Interactive Segment Bounds Table & Editor -->
+            <div id="segmentEditorBar" class="segment-editor-container">
+              <div class="segment-editor-header">
+                <span class="editor-title">Active Segment Partition Bounds</span>
+                <span class="editor-subtitle">Adjust bounds individually or pick K in the left panel</span>
+                <button type="button" id="btnApplyCustomSegments" class="mini-btn-accent">Apply Bounds & Recalculate</button>
+              </div>
+              <div id="segmentBoundsTable" class="segment-bounds-table"></div>
+            </div>
+            <div id="segmentStatsBar" style="padding: 8px 14px; border-top: 1px solid var(--border-subtle); display: flex; gap: 16px; font-size: 12px; color: var(--text-muted);"></div>
+          </div>
+
+          <!-- SIGNAL GUIDE LINES TOOLBAR FOR 1D SPECTRA & COHERENCE -->
+          <div class="panel-card" style="padding: 10px 14px; margin-bottom: 12px; background: var(--card-bg);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-cyan);">Signal Guide Lines:</span>
+                <input type="number" id="inputGuidelineVal" placeholder="Freq or Period" step="any" class="numeric-input-sm" style="width: 115px;">
+                <select id="selectGuidelineUnit" class="select-sm" style="width: 85px;">
+                  <option value="freq" selected>f (d⁻¹)</option>
+                  <option value="period">P (days)</option>
+                </select>
+                <input type="text" id="inputGuidelineLabel" placeholder="Label (optional)" class="numeric-input-sm" style="width: 125px;">
+                <input type="color" id="inputGuidelineColor" value="#FF9500" style="width: 32px; height: 26px; border: none; border-radius: 4px; cursor: pointer; padding: 0;" title="Guide Line Color">
+                <button type="button" id="btnAddGuideline" class="mini-btn-accent" title="Add Vertical Marker Line to Coherence & Periodograms">+ Add Guide Line</button>
+              </div>
+              <div id="guidelinesList" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"></div>
+            </div>
+          </div>
+
+          <!-- MIDDLE: Power Spectrum: Welch PSD vs Lomb-Scargle -->
+          <div class="panel-card">
+            <div class="card-header">
+              <div class="card-title">Power Spectrum: Welch PSD vs Lomb-Scargle Periodogram [Log Scale]</div>
+              <div class="card-actions">
+                <div class="scale-toggle" id="welchPsdNormToggle">
+                  <button type="button" class="scale-btn active" data-welchpsd="norm" data-val="peak" title="Normalized Power (P / P_max) matching HARPS-N preliminary tradeoff plots">Normalized (P/P_max)</button>
+                  <button type="button" class="scale-btn" data-welchpsd="norm" data-val="raw" title="Unnormalized Parseval PSD (Integrated power = variance)">Parseval PSD</button>
+                </div>
+                <div class="domain-toggle">
+                  <button type="button" class="domain-btn active" data-welchpsd="domain" data-val="freq">Frequency (d⁻¹)</button>
+                  <button type="button" class="domain-btn" data-welchpsd="domain" data-val="period">Period (days)</button>
+                </div>
+              </div>
+            </div>
+            <div id="plotWelchPSD" class="plot-canvas plot-canvas-md"></div>
+          </div>
+
+          <!-- BOTTOM: 1D Welch Bivariate Magnitude-Squared Coherence z(f) -->
+          <div class="panel-card">
+            <div class="card-header">
+              <div class="card-title">1D Welch Bivariate Magnitude-Squared Coherence z(f) [Analytical FAPs & 2ℛ Bands]</div>
+              <div class="card-actions">
+                <div class="domain-toggle">
+                  <button type="button" class="domain-btn active" data-welchcoh="domain" data-val="freq">Frequency (d⁻¹)</button>
+                  <button type="button" class="domain-btn" data-welchcoh="domain" data-val="period">Period (days)</button>
+                </div>
+                <div class="scale-toggle">
+                  <button type="button" class="scale-btn active" data-welchcoh="scale" data-val="linear">Linear z(f)</button>
+                  <button type="button" class="scale-btn" data-welchcoh="scale" data-val="log">Log z(f)</button>
+                </div>
+              </div>
+            </div>
+            <div id="plotWelch1DCoh" class="plot-canvas plot-canvas-md"></div>
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 3: 2D DUAL-FREQUENCY COHERENCE MATRIX                       -->
+        <!-- ================================================================ -->
+        <div id="viewDual2D" class="view-content active">
+          <!-- TOP ROW: EXPANDED 2D MATRIX & BEAT METRICS -->
+          <div class="panels-top-row">
+            <div class="panel-card panel-matrix">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot"></span>
+                  2D Dual Coherence Matrix z(f₁, f₂)
+                </div>
+                <div class="card-actions">
+                  <button type="button" id="btnToggleFalContours" class="mini-btn active" title="Toggle 1.0% and 0.1% False Alarm Level Contours">FAL Contours: ON</button>
+                  <button type="button" id="btnResetZoom" class="mini-btn" style="display: none;" title="Reset Zoom to Full Grid">Reset Zoom</button>
+                  <span class="hint-text">Click anywhere in the matrix to inspect beats and 1D cuts</span>
+                </div>
+              </div>
+              <div id="plotMatrix" class="plot-canvas plot-canvas-matrix"></div>
+            </div>
+
+            <div class="panel-card panel-metrics">
+              <div class="card-header">
+                <div class="card-title">Active Node & Beat Metrics</div>
+              </div>
+              <div class="metrics-body" id="metricsContent">
+                <div class="metric-row">
+                  <div class="m-box">
+                    <span class="m-lbl">Period P₁</span>
+                    <span class="m-val" id="mP1">—</span>
+                    <span class="m-sub" id="mF1">—</span>
+                  </div>
+                  <div class="m-box">
+                    <span class="m-lbl">Period P₂</span>
+                    <span class="m-val" id="mP2">—</span>
+                    <span class="m-sub" id="mF2">—</span>
+                  </div>
+                </div>
+
+                <div class="metric-row">
+                  <div class="m-box highlight-box">
+                    <span class="m-lbl">Measured Coherence z</span>
+                    <span class="m-val" id="mZ">—</span>
+                    <span class="m-badge" id="mSigBadge">—</span>
+                  </div>
+                  <div class="m-box">
+                    <span class="m-lbl">Resolution 2ℛ</span>
+                    <span class="m-val" id="m2R">—</span>
+                    <span class="m-sub" id="m2RP">—</span>
+                  </div>
+                </div>
+
+                <div class="metric-row">
+                  <div class="m-box">
+                    <span class="m-lbl">Carrier Period P_mid</span>
+                    <span class="m-val" id="mPmid">—</span>
+                    <span class="m-sub" id="mFmid">—</span>
+                  </div>
+                  <div class="m-box highlight-box-accent">
+                    <span class="m-lbl">Beat Period & Separation</span>
+                    <span class="m-val" id="mPbeat">—</span>
+                    <span class="m-sub" id="mDeltaF">—</span>
+                  </div>
+                </div>
+
+                <div class="metric-status-row">
+                  <div class="fap-benchmark">
+                    <span class="benchmark-title">Analytical FAP Thresholds</span>
+                    <div class="fap-chips">
+                      <span class="fap-chip chip-01" id="mFap01">0.1%: —</span>
+                      <span class="fap-chip chip-1" id="mFap1">1.0%: —</span>
+                      <span class="fap-chip chip-5" id="mFap5">5.0%: —</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AUTOMATED PEAK DETECTOR & ALIAS NETWORK PANEL -->
+          <div class="panel-card peak-detector-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="indicator-dot" style="background-color: var(--accent-orange);"></span>
+                Automated Peak Detector & Sampling Alias Identifier
+              </div>
+              <div class="card-actions" style="gap: 8px;">
+                <label for="peakFapFilter" style="font-size: 11px; color: var(--text-muted);">Threshold:</label>
+                <select id="peakFapFilter" class="select-sm">
+                  <option value="fap5">≥ 5.0% FAP (All Candidates)</option>
+                  <option value="fap1" selected>≥ 1.0% FAP (Significant)</option>
+                  <option value="fap01">≥ 0.1% FAP (High Confidence)</option>
+                </select>
+                <button type="button" id="btnRescanPeaks" class="mini-btn-accent" title="Rescan significant local maxima">Rescan Peaks</button>
+              </div>
+            </div>
+            <div class="peak-table-scroll">
+              <table class="peak-detector-table" id="peakDetectorTable">
+                <thead>
+                  <tr>
+                    <th>Frequency (f₁, f₂)</th>
+                    <th>Period (P₁, P₂)</th>
+                    <th>Separation Δf</th>
+                    <th>Beat Period</th>
+                    <th>Coherence z</th>
+                    <th>FAP Tier</th>
+                    <th>Classification / Alias Beat</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="peakDetectorTbody">
+                  <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 14px;">Compute coherence to detect significant coupling peaks.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- BOTTOM ROW: DYNAMIC 1D CROSS-SECTIONS -->
+          <div class="panels-bottom-row">
+            <!-- HORIZONTAL CUT: ROTATION CROSS-CUT -->
+            <div class="panel-card panel-cut">
+              <div class="card-header">
+                <div class="card-title">
+                  Horizontal Slices: Coupled Frequencies z(f₁ | f₂ = const)
+                </div>
+                <div class="card-actions">
+                  <div class="layout-toggle segmented-toggle" title="Horizontal Slices Display Mode">
+                    <button type="button" class="layout-btn active" id="btnHorizLayoutSingle" data-horiz-layout="single" title="Show Single Selected Cut">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><rect x="3" y="4" width="18" height="16" rx="2"></rect></svg><span>Single</span>
+                    </button>
+                    <button type="button" class="layout-btn" id="btnHorizLayoutSubpanels" data-horiz-layout="subpanels" title="Show All Active Cuts in Stacked Subpanels">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -1px; margin-right: 3px;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg><span>Subpanels</span>
+                    </button>
+                  </div>
+                  <select id="selectSingleHorizCut" class="select-sm" style="max-width: 175px;" title="Select Active Horizontal Cut to Display"></select>
+                  <div class="domain-toggle">
+                    <button type="button" class="domain-btn active" data-cut="horiz" data-domain="freq">Frequency (d⁻¹)</button>
+                    <button type="button" class="domain-btn" data-cut="horiz" data-domain="period">Period (days)</button>
+                  </div>
+                  <div class="scale-toggle">
+                    <button type="button" class="scale-btn active" data-cut="horiz" data-scale="linear">Linear</button>
+                    <button type="button" class="scale-btn" data-cut="horiz" data-scale="log">Log</button>
+                  </div>
+                  <button type="button" id="btnExportHorizCSV" class="mini-btn" title="Export Cut Data as CSV">CSV</button>
+                </div>
+              </div>
+              <div id="plotHorizontal" class="plot-canvas plot-canvas-cut"></div>
+            </div>
+
+            <!-- ANTI-DIAGONAL CUT: BEAT CROSS-SECTION -->
+            <div class="panel-card panel-cut">
+              <div class="card-header">
+                <div class="card-title">
+                  Anti-Diagonal Slice: Beat Spectrum z(Δf | f_mid = const)
+                </div>
+                <div class="card-actions">
+                  <div class="domain-toggle">
+                    <button type="button" class="domain-btn active" data-cut="beat" data-domain="freq">Separation Δf</button>
+                    <button type="button" class="domain-btn" data-cut="beat" data-domain="period">Beat Period</button>
+                  </div>
+                  <div class="scale-toggle">
+                    <button type="button" class="scale-btn active" data-cut="beat" data-scale="linear">Linear</button>
+                    <button type="button" class="scale-btn" data-cut="beat" data-scale="log">Log</button>
+                  </div>
+                  <button type="button" id="btnExportBeatCSV" class="mini-btn" title="Export Cut Data as CSV">CSV</button>
+                </div>
+              </div>
+              <div id="plotAntiDiagonal" class="plot-canvas plot-canvas-cut"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- VIEW 4: SIDE-BY-SIDE MULTI-CAMPAIGN & INSTRUMENT COMPARISON       -->
+        <!-- ================================================================ -->
+        <div id="viewComparison" class="view-content" style="display: none;">
+          <!-- Top Differential Metrics Summary Banner -->
+          <!-- Top Differential Metrics Summary Banner -->
+          <div class="comp-metrics-banner" id="compMetricsBanner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="comp-metric-box comp-metric-a">
+              <span class="comp-metric-badge" style="background: rgba(0, 230, 118, 0.15); color: #00E676;">Panel A</span>
+              <h4 id="compMetricLabelA">Solar Minimum (2018–2021)</h4>
+              <div class="comp-metric-vals">
+                <span>N = <strong id="compStatNA">—</strong></span>
+                <span>N_eff = <strong id="compStatNeffA">—</strong></span>
+                <span>2ℛ = <strong id="compStat2RA">—</strong></span>
+                <span>Peak P_rot = <strong id="compStatProtA">—</strong></span>
+              </div>
+            </div>
+
+            <div class="comp-metric-box comp-metric-b">
+              <span class="comp-metric-badge" style="background: rgba(255, 145, 0, 0.15); color: #FF9100;">Panel B</span>
+              <h4 id="compMetricLabelB">Solar Maximum (2022–2024)</h4>
+              <div class="comp-metric-vals">
+                <span>N = <strong id="compStatNB">—</strong></span>
+                <span>N_eff = <strong id="compStatNeffB">—</strong></span>
+                <span>2ℛ = <strong id="compStat2RB">—</strong></span>
+                <span>Peak P_rot = <strong id="compStatProtB">—</strong></span>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Row 1: Side-by-Side 2D Coherence Heatmaps (Panel A vs Panel B) -->
+          <div class="comp-2d-row" id="comp2DRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div class="panel-card comp-map-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: #00E676;"></span>
+                  <span id="titleCompMapA">Panel A: 2D Dual Coherence z(f₁, f₂)</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" id="btnToggleCompFalA" class="mini-btn active" title="Toggle 2D False Alarm Probability contour lines">FAL Contours: ON</button>
+                  <button type="button" id="btnResetZoomCompA" class="mini-btn">Reset</button>
+                </div>
+              </div>
+              <div id="plotCompMapA" class="plot-canvas plot-canvas-comp2d"></div>
+            </div>
+
+            <div class="panel-card comp-map-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: #FF9100;"></span>
+                  <span id="titleCompMapB">Panel B: 2D Dual Coherence z(f₁, f₂)</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" id="btnToggleCompFalB" class="mini-btn active" title="Toggle 2D False Alarm Probability contour lines">FAL Contours: ON</button>
+                  <button type="button" id="btnResetZoomCompB" class="mini-btn">Reset</button>
+                </div>
+              </div>
+              <div id="plotCompMapB" class="plot-canvas plot-canvas-comp2d"></div>
+            </div>
+          </div>
+
+          <!-- Row 2: Delta Matrix (Δz = z_B - z_A) & Active Node & Beat Metrics -->
+          <div class="comp-delta-metrics-row" id="compDeltaMetricsRow" style="display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; margin-bottom: 14px;">
+            <!-- Left: Delta Matrix -->
+            <div class="panel-card comp-map-card" id="cardCompDelta">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: #38BDF8;"></span>
+                  <span id="titleCompMapDelta">Delta Matrix: Δz = z_B - z_A</span>
+                </div>
+                <div class="card-actions">
+                  <button type="button" id="btnResetZoomCompDelta" class="mini-btn">Reset</button>
+                </div>
+              </div>
+              <div id="plotCompMapDelta" class="plot-canvas plot-canvas-comp2d"></div>
+            </div>
+
+            <!-- Right: Active Node & Beat Metrics (Panel A vs Panel B) -->
+            <div class="panel-card comp-slice-card comp-node-metrics-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: var(--accent-purple);"></span>
+                  Active Node & Beat Metrics (Panel A vs Panel B)
+                </div>
+                <div class="card-actions">
+                  <span class="hint-text" style="font-size: 10.5px;">Click matrix to inspect</span>
+                </div>
+              </div>
+              <div class="comp-node-metrics-body" id="compNodeMetricsBody">
+                <div class="metric-row">
+                  <div class="m-box">
+                    <span class="m-lbl">Inspected Node (P₁, P₂)</span>
+                    <span class="m-val" id="compNodePeriods">—</span>
+                    <span class="m-sub" id="compNodeFreqs">—</span>
+                  </div>
+                  <div class="m-box">
+                    <span class="m-lbl">Beat Period & Separation</span>
+                    <span class="m-val" id="compNodePbeat">—</span>
+                    <span class="m-sub" id="compNodeDeltaF">—</span>
+                  </div>
+                </div>
+
+                <div class="metric-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+                  <div class="m-box" style="border-left: 3px solid #00E676;">
+                    <span class="m-lbl" style="color: #00E676;">Panel A Coherence z_A</span>
+                    <span class="m-val" id="compNodeZA">—</span>
+                    <span class="m-badge" id="compBadgeZA">—</span>
+                    <span class="m-sub" id="compNode2RA">2ℛ: —</span>
+                  </div>
+                  <div class="m-box" style="border-left: 3px solid #FF9100;">
+                    <span class="m-lbl" style="color: #FF9100;">Panel B Coherence z_B</span>
+                    <span class="m-val" id="compNodeZB">—</span>
+                    <span class="m-badge" id="compBadgeZB">—</span>
+                    <span class="m-sub" id="compNode2RB">2ℛ: —</span>
+                  </div>
+                </div>
+
+                <div class="metric-row" style="margin-top: 6px;">
+                  <div class="m-box highlight-box">
+                    <span class="m-lbl">Differential Coupling Strength Δz = z_B - z_A</span>
+                    <span class="m-val" id="compNodeDeltaZ">—</span>
+                    <span class="m-sub" id="compNodeDeltaZDesc">—</span>
+                  </div>
+                </div>
+
+                <div class="metric-status-row" style="margin-top: 6px;">
+                  <div class="fap-benchmark">
+                    <span class="benchmark-title" id="compFapTitleA" style="font-size: 10px;">Panel A Analytical FAPs</span>
+                    <div class="fap-chips">
+                      <span class="fap-chip chip-01" id="compFapA01">0.1%: —</span>
+                      <span class="fap-chip chip-1" id="compFapA1">1.0%: —</span>
+                      <span class="fap-chip chip-5" id="compFapA5">5.0%: —</span>
+                    </div>
+                  </div>
+                  <div class="fap-benchmark" style="margin-top: 4px;">
+                    <span class="benchmark-title" id="compFapTitleB" style="font-size: 10px;">Panel B Analytical FAPs</span>
+                    <div class="fap-chips">
+                      <span class="fap-chip chip-01" id="compFapB01">0.1%: —</span>
+                      <span class="fap-chip chip-1" id="compFapB1">1.0%: —</span>
+                      <span class="fap-chip chip-5" id="compFapB5">5.0%: —</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3: Linked Horizontal Slices & Anti-Diagonal Beat Slice -->
+          <div class="comp-slices-row" id="compSlicesRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <!-- Left: Linked Horizontal Slices Comparison -->
+            <div class="panel-card comp-slice-card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: var(--accent-blue);"></span>
+                  <span id="titleCompHoriz">Linked Horizontal Slices z(f₁ | f₂ = const)</span>
+                </div>
+                <div class="card-actions" style="gap: 6px;">
+                  <button type="button" id="btnCompCutRot" class="mini-btn" title="Set cut at fundamental rotation f_rot">f_rot</button>
+                  <button type="button" id="btnCompCut2Rot" class="mini-btn" title="Set cut at 1st harmonic 2f_rot">2f_rot</button>
+                  <button type="button" id="btnResetZoomCompHoriz" class="mini-btn">Reset</button>
+                </div>
+              </div>
+              <div id="plotCompHorizSlice" class="plot-canvas plot-canvas-compslice"></div>
+            </div>
+
+            <!-- Right: Anti-Diagonal Slice: Beat Spectrum (just as in Tab 3) -->
+            <div class="panel-card comp-slice-card" id="cardCompAntiDiag">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: var(--accent-purple);"></span>
+                  <span id="titleCompAntiDiag">Anti-Diagonal Slice: Beat Spectrum z(Δf | f_mid = const)</span>
+                </div>
+                <div class="card-actions" style="gap: 6px;">
+                  <button type="button" id="btnResetZoomCompAntiDiag" class="mini-btn">Reset</button>
+                </div>
+              </div>
+              <div id="plotCompAntiDiagSlice" class="plot-canvas plot-canvas-compslice"></div>
+            </div>
+          </div>
+
+          <!-- Row 4: Side-by-Side 1D Welch Bivariate Coherence z(f) with Independent Selectors -->
+          <div class="comp-1d-row" id="comp1DRow" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <!-- Left: Panel A 1D Welch Coherence -->
+            <div class="panel-card comp-slice-card" id="cardComp1DA">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: #00E676;"></span>
+                  <span id="titleComp1DCohA">Panel A: 1D Welch Bivariate Coherence z(f)</span>
+                </div>
+                <div class="card-actions" style="display: flex; gap: 6px; align-items: center;">
+                  <button type="button" id="btnSyncComp1DA" class="mini-btn" title="Copy dataset & epoch from 2D Panel A">Copy 2D Setup</button>
+                  <button type="button" id="btnResetZoomComp1DCohA" class="mini-btn">Reset</button>
+                </div>
+              </div>
+
+              <!-- Dedicated 1D Control Bar for Panel A -->
+              <div class="comp-1d-control-bar" id="comp1DControlBarA">
+                <div class="comp-1d-field">
+                  <label for="comp1DDatasetA">Dataset</label>
+                  <select id="comp1DDatasetA" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field">
+                  <label for="comp1DPresetA">Epoch</label>
+                  <select id="comp1DPresetA" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field">
+                  <label for="comp1DSeries1A">Series 1</label>
+                  <select id="comp1DSeries1A" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field">
+                  <label for="comp1DSeries2A">Series 2</label>
+                  <select id="comp1DSeries2A" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field comp-1d-k-field">
+                  <label for="comp1DKInputA">K</label>
+                  <input type="number" id="comp1DKInputA" min="2" max="30" step="1" value="4" class="mini-input-k">
+                </div>
+                <div class="comp-1d-actions">
+                  <button type="button" id="btnComp1DAutoA" class="mini-btn" title="Autocalculate optimal adaptive segment count K">Auto</button>
+                  <button type="button" id="btnComp1DComputeA" class="mini-btn-accent" title="Calculate & Plot 1D Bivariate Coherence">Plot 1D</button>
+                </div>
+              </div>
+
+              <div id="plotComp1DCohA" class="plot-canvas plot-canvas-compslice"></div>
+            </div>
+
+            <!-- Right: Panel B 1D Welch Coherence -->
+            <div class="panel-card comp-slice-card" id="cardComp1DB">
+              <div class="card-header">
+                <div class="card-title">
+                  <span class="indicator-dot" style="background: #FF9100;"></span>
+                  <span id="titleComp1DCohB">Panel B: 1D Welch Bivariate Coherence z(f)</span>
+                </div>
+                <div class="card-actions" style="display: flex; gap: 6px; align-items: center;">
+                  <button type="button" id="btnSyncComp1DB" class="mini-btn" title="Copy dataset & epoch from 2D Panel B">Copy 2D Setup</button>
+                  <button type="button" id="btnResetZoomComp1DCohB" class="mini-btn">Reset</button>
+                </div>
+              </div>
+
+              <!-- Dedicated 1D Control Bar for Panel B -->
+              <div class="comp-1d-control-bar" id="comp1DControlBarB">
+                <div class="comp-1d-field">
+                  <label for="comp1DDatasetB">Dataset</label>
+                  <select id="comp1DDatasetB" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field">
+                  <label for="comp1DPresetB">Epoch</label>
+                  <select id="comp1DPresetB" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field">
+                  <label for="comp1DSeries1B">Series 1</label>
+                  <select id="comp1DSeries1B" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field">
+                  <label for="comp1DSeries2B">Series 2</label>
+                  <select id="comp1DSeries2B" class="mini-select"></select>
+                </div>
+                <div class="comp-1d-field comp-1d-k-field">
+                  <label for="comp1DKInputB">K</label>
+                  <input type="number" id="comp1DKInputB" min="2" max="30" step="1" value="4" class="mini-input-k">
+                </div>
+                <div class="comp-1d-actions">
+                  <button type="button" id="btnComp1DAutoB" class="mini-btn" title="Autocalculate optimal adaptive segment count K">Auto</button>
+                  <button type="button" id="btnComp1DComputeB" class="mini-btn-accent" title="Calculate & Plot 1D Bivariate Coherence">Plot 1D</button>
+                </div>
+              </div>
+
+              <div id="plotComp1DCohB" class="plot-canvas plot-canvas-compslice"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- UPLOAD DATASET MODAL -->
+  <div id="uploadModal" class="modal-overlay" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>Upload & Ingest Custom Dataset</h3>
+          <p class="modal-subtitle">Load CSV, TSV, or TXT spectroscopic time series without writing code.</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseUploadModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Error Alert Container -->
+        <div id="uploadErrorAlert" class="upload-error-alert" style="display: none;"></div>
+
+        <!-- Format Options -->
+        <div class="upload-options-row">
+          <div class="upload-opt-field">
+            <label for="uploadDelimiter">Table Delimiter</label>
+            <select id="uploadDelimiter" class="select-sm">
+              <option value="auto" selected>Auto-detect Delimiter</option>
+              <option value=",">Comma (,)</option>
+              <option value="whitespace">Whitespace / Space (ASCII)</option>
+              <option value="&#9;">Tab (\t)</option>
+              <option value=";">Semicolon (;)</option>
+            </select>
+          </div>
+          <div class="upload-opt-field" style="max-width: 140px;">
+            <label for="uploadCommentChar">Comment Char</label>
+            <input type="text" id="uploadCommentChar" value="#" class="text-input" style="text-align: center;">
+          </div>
+        </div>
+
+        <!-- Step 1: Dropzone -->
+        <div class="upload-dropzone" id="uploadDropzone">
+          <input type="file" id="uploadFileInput" accept=".csv,.txt,.dat,.tsv" style="display: none;">
+          <div class="dropzone-content">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p class="dropzone-prompt"><strong>Click to select file</strong> or drag & drop here</p>
+            <span class="dropzone-hint">Supports CSV, TSV, TXT tables with header column names or commented metadata</span>
+          </div>
+        </div>
+
+        <!-- Step 2: Inspection & Mapping Preview (Shown after file read) -->
+        <div id="uploadPreviewSection" style="display: none;">
+          <div class="upload-stats-summary" id="uploadStatsSummary"></div>
+
+          <div class="upload-form-grid">
+            <div class="field">
+              <label for="uploadDatasetName">Dataset Display Name</label>
+              <input type="text" id="uploadDatasetName" class="text-input" placeholder="e.g. Barnard's Star CARMENES">
+            </div>
+            <div class="field">
+              <label for="uploadTimeColSelect">Time Column</label>
+              <select id="uploadTimeColSelect"></select>
+            </div>
+            <div class="field">
+              <label for="uploadTimeUnit">Time Unit</label>
+              <input type="text" id="uploadTimeUnit" class="text-input" value="BJD (days)">
+            </div>
+            <div class="field">
+              <label for="uploadProtInput">Stellar Rotation Period P_rot (days)</label>
+              <input type="number" id="uploadProtInput" class="numeric-input" value="27.28" step="0.01" min="0.1">
+            </div>
+          </div>
+
+          <div class="field" style="margin-top: 14px;">
+            <label class="group-title" style="margin-bottom: 6px;">Detected Indicator Channels & Mapping</label>
+            <div class="upload-series-table-container">
+              <table class="upload-series-table" id="uploadSeriesTable">
+                <thead>
+                  <tr>
+                    <th style="width: 38px;">Use</th>
+                    <th>Column Name</th>
+                    <th>Friendly Label</th>
+                    <th>Physical Unit</th>
+                    <th>Error Column</th>
+                  </tr>
+                </thead>
+                <tbody id="uploadSeriesTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top: 14px;">
+            <label class="group-title" style="margin-bottom: 6px;">Data Table Preview (First 5 Rows)</label>
+            <div class="upload-preview-table-container" id="uploadPreviewTableContainer"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btnCancelUpload">Cancel</button>
+        <button type="button" class="action-btn-primary" id="btnConfirmUpload" style="display: none;">
+          <span class="btn-text">Confirm & Ingest Dataset</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRANULAR PLOT EXPORT MODAL -->
+  <div id="exportModal" class="modal-overlay" style="display: none;">
+    <div class="modal-dialog" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>Export Publication Figures & Data</h3>
+          <p class="modal-subtitle">Select individual panels, stacked composites, and CSV data tables.</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="btnCloseExportModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="export-options-list">
+          <label class="export-option-item">
+            <input type="checkbox" id="chkExpHeatmap" checked>
+            <div class="opt-text">
+              <strong>2D Dual-Coherence Locator Heatmap (PNG)</strong>
+              <span>Square 300 DPI plot with colorbar, carrier lines, and active cut tracks.</span>
+            </div>
+          </label>
+          <label class="export-option-item">
+            <input type="checkbox" id="chkExpDiagonal" checked>
+            <div class="opt-text">
+              <strong>Diagonal Cut Profile z(f, f) (PNG)</strong>
+              <span>Isofrequency cut with 0.1%, 1%, 5% FAP lines and 2ℛ resolution harmonic bands.</span>
+            </div>
+          </label>
+          <label class="export-option-item">
+            <input type="checkbox" id="chkExpHorizontal" checked>
+            <div class="opt-text">
+              <strong>Horizontal Multi-Cuts Profile z(f₁ | f₂) (PNG)</strong>
+              <span>Coupled activity profiles for fundamental f_rot, 2f_rot, and custom frequencies.</span>
+            </div>
+          </label>
+          <label class="export-option-item">
+            <input type="checkbox" id="chkExpComposite" checked>
+            <div class="opt-text">
+              <strong>3-Panel Composite Publication Layout (PNG)</strong>
+              <span>Synchronized 2D locator matrix alongside anti-diagonal beat and horizontal cuts.</span>
+            </div>
+          </label>
+          <label class="export-option-item">
+            <input type="checkbox" id="chkExpCSV" checked>
+            <div class="opt-text">
+              <strong>Extracted Cuts & Significant Peaks Tables (CSV)</strong>
+              <span>Numerical data tables of all cuts and detected peak coordinates with alias tags.</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="field" style="margin-top: 14px;">
+          <div class="grid-2col">
+            <div>
+              <label for="exportColormap">Colormap Palette</label>
+              <select id="exportColormap" class="select-sm">
+                <option value="inferno" selected>Inferno</option>
+                <option value="turbo">Turbo</option>
+                <option value="afmhot">Afmhot</option>
+                <option value="viridis">Viridis</option>
+                <option value="magma">Magma</option>
+                <option value="plasma">Plasma</option>
+              </select>
+            </div>
+            <div>
+              <label for="exportHarmonicsCount">Rotation Harmonics</label>
+              <select id="exportHarmonicsCount" class="select-sm">
+                <option value="1">1 Harmonic (f_rot)</option>
+                <option value="2" selected>2 Harmonics (f_rot, 2f_rot)</option>
+                <option value="3">3 Harmonics</option>
+                <option value="4">4 Harmonics</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generated Files List (Shown after export) -->
+        <div id="exportResultsSection" style="display: none; margin-top: 16px;">
+          <label class="group-title" style="margin-bottom: 6px;">Generated Files</label>
+          <div class="export-files-list" id="exportFilesList"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btnCancelExport">Close</button>
+        <button type="button" class="action-btn-primary" id="btnRunExport">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span class="btn-text">Generate & Export Selected</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/web/app.js"></script>
+</body>
+</html>

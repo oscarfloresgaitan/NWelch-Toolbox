@@ -1,0 +1,42 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Operating system artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary output files (keep directory tracked)
+exports/*.png
+exports/*.pdf
+exports/*.csv
+!exports/.gitkeep
+
+# Local developer notes
+TOOLBOX_DEV_GUIDE.md
+
+# User custom uploads (keep directory tracked, ignore custom user files)
+user_uploads/*
+!user_uploads/.gitkeep
+
+
