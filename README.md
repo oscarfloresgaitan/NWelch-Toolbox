@@ -25,8 +25,8 @@ The application runs locally at `http://localhost:8050` with no external build t
 
 ## Key Views & Capabilities
 
-- **Time Series & Diagnostics**: Activity proxy timelines, cadence histograms, native NWelch spectral window function $W(f)$, and Lomb-Scargle periodograms.
-- **1D Welch PSD & Adaptive Segmentation**: Time-clustered seasonal segmentation with 100% data preservation (zero trimming), overlaid Welch PSDs, and 1D bivariate coherence $z(f)$.
+- **Time Series & Diagnostics**: Activity proxy timelines, cadence histograms, spectral window function $W(f)$, and Lomb-Scargle periodograms.
+- **1D Welch PSD & Adaptive Segmentation**: Time-clustered seasonal segmentation, overlaid Welch PSDs, and 1D bivariate coherence $z(f)$.
 - **2D Dual-Frequency Coherence**: Autocoherence and cross-coherence heatmaps $\Gamma(f_1, f_2)$ with empirical 2D False Alarm Level (FAL) contours, real-time directional slicing (horizontal and anti-diagonal beat spectra), and automated node peak detection.
 - **Multi-Campaign Comparison**: Side-by-side heatmaps, differential delta matrices ($\Delta z = z_B - z_A$), linked cross-campaign 1D slices with rotation presets, and independent 1D Welch coherence panels.
 
